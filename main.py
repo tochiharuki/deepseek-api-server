@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 app = FastAPI()
 
-# CORS設定（Swiftアプリからのアクセス用）
+# CORS設定
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -22,7 +22,7 @@ class Prompt(BaseModel):
 def ask_deepseek(data: Prompt):
     api_key = os.getenv("DEEPSEEK_API_KEY")
     
-    url = "https://api.deepseek.com/chat/completions"
+    url = "https://api.deepseek.com/v1/chat/completions"
 
     payload = {
         "model": "deepseek-chat",
@@ -37,6 +37,10 @@ def ask_deepseek(data: Prompt):
     }
 
     res = requests.post(url, json=payload, headers=headers, timeout=30)
+    res.raise_for_status()  # 失敗時は例外を出す
 
-    # DeepSeek の応答
-    return res.json()
+    res_json = res.json()
+    # OpenAI 互換の JSON から必要な部分だけ抽出
+    answer_text = res_json["choices"][0]["message"]["content"]
+
+    return {"question": data.message, "answer": answer_text}
