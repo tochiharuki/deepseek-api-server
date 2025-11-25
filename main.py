@@ -37,10 +37,20 @@ def ask_deepseek(data: Prompt):
     }
 
     res = requests.post(url, json=payload, headers=headers, timeout=30)
-    res.raise_for_status()  # 失敗時は例外を出す
+    res.raise_for_status()
 
     res_json = res.json()
-    # OpenAI 互換の JSON から必要な部分だけ抽出
     answer_text = res_json["choices"][0]["message"]["content"]
 
-    return {"question": data.message, "answer": answer_text}
+    # Swift側のQuizResponse形式に整形
+    try:
+        import json
+        quiz_json = json.loads(answer_text)  # DeepSeekがJSON文字列で返してくれることが前提
+        return quiz_json
+    except Exception:
+        # 万が一JSONでなければデフォルトを返す
+        return {
+            "question": "取得できませんでした",
+            "choices": ["", "", "", ""],
+            "answerIndex": 0
+        }
