@@ -47,13 +47,13 @@ def ask_deepseek(data: Prompt) -> Any:
 
     # ここで、DeepSeek が JSON を返したら quiz として扱い、
     # そうでなければテキスト回答として { "answer": text } を返す
+    # main.py 修正版
     try:
         import json
         parsed = json.loads(answer_text)
-        # parsed が dict かつ question キーを持っていればそのまま返す（Quiz）
-        if isinstance(parsed, dict) and "question" in parsed:
+        # title がある場合は Quiz とみなす
+        if isinstance(parsed, dict) and "title" in parsed:
             return parsed
-        # 兆候があっても Quiz フォーマットでなければ fallback へ
     except Exception:
         pass
 
