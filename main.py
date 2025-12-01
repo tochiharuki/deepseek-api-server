@@ -1,14 +1,13 @@
-# main.py
 import os
+import json
+import re
 import requests
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Any
 
 app = FastAPI()
 
-# CORS設定
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,7 +18,22 @@ app.add_middleware(
 
 class Prompt(BaseModel):
     message: str
-    mode: str = "chat"  # chat or quiz
+    mode: str = "chat"
+
+
+def extract_json(text: str):
+    """
+    DeepSeek が返したテキストから JSON 部分だけを抽出する
+    """
+    # ```json ... ``` を除去
+    text = re.sub(r"```json|```", "", text).strip()
+
+    # { から } までを抽出
+    match = re.search(r"\{.*\}", text, flags=re.DOTALL)
+    if match:
+        return match.group(0)
+    return text  # 最悪生テキスト
+
 
 @app.post("/ask")
 def ask_deepseek(data: Prompt):
@@ -43,10 +57,8 @@ def ask_deepseek(data: Prompt):
     res_json = res.json()
     answer_text = res_json["choices"][0]["message"]["content"]
 
-    # --- Quizモード ---
     if data.mode == "quiz":
-        # DeepSeek が JSON を返してくる前提
-        return json.loads(answer_text)
+        pure = extract_json(answer_text)  # ★ JSON 抽出
+        return json.loads(pure)          # ★ ここで初めてパース
 
-    # --- Chatモード ---
     return {"answer": answer_text}
